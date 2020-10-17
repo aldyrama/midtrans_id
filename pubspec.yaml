@@ -12,9 +12,13 @@ dependencies:
   flutter:
     sdk: flutter
 
+  json_serializable: ^3.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  build_runner: any
+
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

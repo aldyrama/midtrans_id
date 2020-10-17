@@ -1,8 +1,11 @@
 package com.midtrans.midtrans_id
 
 import androidx.annotation.NonNull;
+import com.midtrans.sdk.corekit.models.snap.TransactionResult
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
@@ -10,44 +13,42 @@ import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
 
 /** MidtransIdPlugin */
-public class MidtransIdPlugin: FlutterPlugin, MethodCallHandler {
-  /// The MethodChannel that will the communication between Flutter and native Android
-  ///
-  /// This local reference serves to register the plugin with the Flutter Engine and unregister it
-  /// when the Flutter Engine is detached from the Activity
-  private lateinit var channel : MethodChannel
+class MidtransIdPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
-  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-    channel = MethodChannel(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "midtrans_id")
-    channel.setMethodCallHandler(this);
-  }
-
-  // This static function is optional and equivalent to onAttachedToEngine. It supports the old
-  // pre-Flutter-1.12 Android projects. You are encouraged to continue supporting
-  // plugin registration via this function while apps migrate to use the new Android APIs
-  // post-flutter-1.12 via https://flutter.dev/go/android-project-migration.
-  //
-  // It is encouraged to share logic between onAttachedToEngine and registerWith to keep
-  // them functionally equivalent. Only one of onAttachedToEngine or registerWith will be called
-  // depending on the user's project. onAttachedToEngine or registerWith must both be defined
-  // in the same class.
   companion object {
     @JvmStatic
     fun registerWith(registrar: Registrar) {
       val channel = MethodChannel(registrar.messenger(), "midtrans_id")
-      channel.setMethodCallHandler(MidtransIdPlugin())
+      channel.setMethodCallHandler(MidtransIdPlugin().apply {
+        delegate.activity = registrar.activity()
+        delegate.channel = channel
+      })
     }
   }
 
-  override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
-    if (call.method == "getPlatformVersion") {
-      result.success("Android ${android.os.Build.VERSION.RELEASE}")
-    } else {
-      result.notImplemented()
-    }
+  private lateinit var channel : MethodChannel
+  private val delegate = MidtransPluginDelegate()
+
+  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+    channel = MethodChannel(flutterPluginBinding.flutterEngine.dartExecutor, "midtrans_id")
+    channel.setMethodCallHandler(this);
+    delegate.channel = channel
   }
+
+  override fun onMethodCall(call: MethodCall, result: Result) = delegate.handleMethodCall(call, result)
 
   override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
   }
+
+  override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+    delegate.activity = binding.activity
+  }
+
+  override fun onDetachedFromActivityForConfigChanges() {}
+
+  override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {}
+
+  override fun onDetachedFromActivity() {}
+
 }

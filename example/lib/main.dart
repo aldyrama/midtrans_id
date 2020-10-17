@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:midtrans_id/midtrans_id.dart';
+import 'package:midtrans_id/model/transaction_finished.dart';
 
 void main() {
   runApp(MyApp());
@@ -15,31 +16,34 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String _platformVersion = 'Unknown';
+  final midtransId = MidtransId();
 
   @override
   void initState() {
     super.initState();
-    initPlatformState();
+    doMidtransPayment();
   }
 
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    try {
-      platformVersion = await MidtransId.platformVersion;
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
+  void doMidtransPayment() {
 
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
+    /// initialize sdk
+    midtransId.initMidtrans(
+        "SB-Mid-client-BIe8NUK4XtYR_woU", "http://staging.whizliz.com/");
 
-    setState(() {
-      _platformVersion = platformVersion;
+    /// make payment with token
+    midtransId.doPaymentWithToken("bec6fce1-205a-4ea8-8dfe-20a146672bb9").catchError((e) {
+      print("error : $e");
     });
+
+    /// return callback from midtrans
+    midtransId
+        .finishCallback((transaction) => callback(transaction));
+  }
+
+  ///callback
+  Future<void> callback(TransactionFinished transactionFinished) {
+    /// do something
+    print("transaction flutter : ${transactionFinished}");
   }
 
   @override
